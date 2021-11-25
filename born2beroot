@@ -1,0 +1,91 @@
+installation:
+	apt install sudo vim ufw libpam_pwquality net-tools cron lighttpd mariadb-server php-cgi php-mysql wget
+
+ssh:
+	vim /etc/ssh/sshd_config
+		Port 4242
+		PermitRootLogin no
+
+	cheked:
+		netsta -nlpt
+
+ufw:
+	ufw enable
+	ufw allow 4242
+	ufw allow 80
+	ufw status
+	ufw default deny incoming
+
+sudo:
+	vim /etc/sudoers
+		Defaults	requiretty
+		Defaults	mail_badpass
+		Defaults	env_reset
+		Defaults	passwd_tries=3
+		Defaults	badpass_message="Hey, Bro, stop drinking, your hands are shaking too much, the password is not correct!"
+		Defaults	logfile="/var/log/sudo.log"
+		Defaults	log_input,log_output
+		Defaults	iolog_dir="/var/log/sudo"
+		Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
+
+bash-script: TO-DO (вставить реальный скрипт, a не набросок)
+		ARCHITECT: uname -rnsvmo (RFTM uname)
+		PHYS: grep 'core id' /proc/cpuinfo | awk '{print $4}' | sort | uniq | wc -l
+		VIRT: grep 'processor' /proc/cpuinfo | awk '{print $3}' | sort | uniq | wc -l
+		RAM: free -m | grep Mem | awk '{printf("%d/%dMi %.2f%%\n"),$3, $2, $3/$2*100}'
+		SWAP: free -h | grep Swap | sed 's/Gi//g' | sed 's/,/./g'  | awk '{printf("%.2f/%.2f Gi %.2f%%\n"),$2-$4 ,$2, ($2-$4)/$2*100}'
+
+		/*IF !SWAP : df -h....	*/
+
+		CPU: top -bn1 | grep '^%Cpu' | sed 's/,/./g' | awk '{printf("%.1f%%\n"), $2 + $6}'
+		Last boot: who -b | awk '{printf("%s %s\n"), $3, $4}'
+		LVM use: if [ $(lsblk | grep lvm | wc -l) -eq 0 ]; then echo no; else echo yes; fi
+
+		TCP:
+			COUNT = netstat -a | grep ESTABLISHED | sort | uniq | wc -l
+			if [ $(COUNT) -eq 0 ]; then echo NOT ESTABLISHED; else echo ESTABLISHED; fi
+		USER:
+			users | wc -w
+		NETWORK:
+			hostname -I | awk '{printf("IP %s"), $0}' && ifconfig -a | grep ether | awk '{printf("(%s)\n"), $2}'
+
+		SUDO: 
+			journalctl _COMM=sudo | grep COMMAND= | wc -l
+
+Politic_PASS:
+		vim /etc/login.defs
+			PASS_MAX_DAYS   30
+			PASS_MIN_DAYS   2
+			PASS_WARN_AGE   7
+			PASS_MIN_LEN	10
+		vim /etc/security/pwquality.conf
+			
+
+crontab:
+		crontab -u root -e
+
+mariadb-server:
+		mysql_secure_installation (root pass == no or yes)
+		mariadb
+		CREATE DATABASE <database-name>;
+		CREATE USER '<user>'@'localhost' IDENTIFIED BY 'password';
+		GRANT ALL ON wordpress.* TO '<user>'@'localhost';
+		FLUSH PRIVILEGES;
+		exit
+WP:
+		wget http://wordpress.org/latest.tar.gz -P /var/www/html
+		tar -xzvf /var/www/html/latest.tar.gz
+		rm /var/www/html/latest.tar.gz
+		cp -r /var/www/html/wordpress/* /var/www/html
+		rm -rf /var/www/html/wordpress
+		cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php
+		vim /var/www/html/wp-config.php
+			define( 'DB_NAME', '<database-name>' );
+			define( 'DB_USER', '<username-2>' );
+			define( 'DB_PASSWORD', '<password-2>' );
+lighttpd:
+		lighty-enable-mod fastcgi
+		lighty-enable-mod fastcgi-php
+		service lighttpd force-reload
+
+
