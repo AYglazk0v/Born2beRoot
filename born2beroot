@@ -30,22 +30,30 @@ sudo:
 
 bash-script: TO-DO (вставить реальный скрипт, a не набросок)
 		ARCHITECT: uname -rnsvmo (RFTM uname)
-		PHYS: grep 'core id' /proc/cpuinfo | awk '{print $4}' | sort | uniq | wc -l
-		VIRT: grep 'processor' /proc/cpuinfo | awk '{print $3}' | sort | uniq | wc -l
+
+		PHYS: grep 'core id' /proc/cpuinfo | awk '{print $4}' | sort -u | wc -l
+
+		VIRT: grep 'processor' /proc/cpuinfo | awk '{print $3}' | sort -u | wc -l
+
 		RAM: free -m | grep Mem | awk '{printf("%d/%dMi %.2f%%\n"),$3, $2, $3/$2*100}'
+
 		SWAP: free -h | grep Swap | sed 's/Gi//g' | sed 's/,/./g'  | awk '{printf("%.2f/%.2f Gi %.2f%%\n"),$2-$4 ,$2, ($2-$4)/$2*100}'
 
 		/*IF !SWAP : df -h....	*/
 
 		CPU: top -bn1 | grep '^%Cpu' | sed 's/,/./g' | awk '{printf("%.1f%%\n"), $2 + $6}'
+
 		Last boot: who -b | awk '{printf("%s %s\n"), $3, $4}'
+
 		LVM use: if [ $(lsblk | grep lvm | wc -l) -eq 0 ]; then echo no; else echo yes; fi
 
 		TCP:
 			COUNT = netstat -a | grep ESTABLISHED | sort | uniq | wc -l
 			if [ $(COUNT) -eq 0 ]; then echo NOT ESTABLISHED; else echo ESTABLISHED; fi
+
 		USER:
 			users | wc -w
+
 		NETWORK:
 			hostname -I | awk '{printf("IP %s"), $0}' && ifconfig -a | grep ether | awk '{printf("(%s)\n"), $2}'
 
